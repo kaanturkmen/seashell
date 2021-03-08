@@ -364,9 +364,25 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		command->args[command->arg_count-1]=NULL;
 
-		execvp(command->name, command->args); // exec+args+path
-		exit(0);
+		// execvp(command->name, command->args); // exec+args+path
+		// exit(0);
 		/// TODO: do your own exec with path resolving using execv()
+
+		// Creating a string which holds absolute path of the command.
+		char pathString[20];
+
+		// Adding /bin/ string to the beginning of the absolute path.
+		// Since there is where all the commands are located.
+		strcpy(pathString, "/bin/");
+
+		// Catenating the name of the program (command) to the pathString.
+		strcat(pathString, command->name);
+
+		// Running exec command with pathString and the args.
+		execv(pathString, command->args);
+
+		exit(0);
+
 	}
 	else
 	{
