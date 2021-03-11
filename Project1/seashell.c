@@ -403,23 +403,46 @@ int process_command(struct command_t *command)
 		// exit(0);
 		/// TODO: do your own exec with path resolving using execv()
 
-		if(command->name[0]=='.'){
-			execv(command->name, command->args);
+		// Getting all environments.
+		char *environments = getenv("PATH");
+
+		// Creating an 2D environment array.
+		char environmentArray[20][20];
+
+		// Creating new variable for tokenized strings.
+		char *tokenizedString;
+
+		// Getting current directory.
+		char *currentDirectory = getenv("PWD");
+
+		// Environment count for environment array indexing.
+		int envCount = 0;
+
+		// First searching if program is executable. And testing if it exists
+		// in current directory.
+		strcat(currentDirectory, "/");
+		strcat(currentDirectory, command->name);
+
+		// Filling 2D array.
+		tokenizedString = strtok(environments, ":");
+
+		while (tokenizedString != NULL ) {
+				strcpy(environmentArray[envCount++], tokenizedString);
+				tokenizedString = strtok(NULL, ":");
 		}
-		else{
-			// Creating a string which holds absolute path of the command.
-			char pathString[20];
 
-			// Adding /bin/ string to the beginning of the absolute path.
-			// Since there is where all the commands are located.
-			strcpy(pathString, "/bin/");
+		// Checking if its executable or if it exists in current directory.
+		if (execv(currentDirectory, command->args) != -1) exit(0);
 
-			// Catenating the name of the program (command) to the pathString.
-			strcat(pathString, command->name);
-
-			// Running exec command with pathString and the args.
-			execv(pathString, command->args);
+		// Else searching inside of path directories.
+		for(int i = 0; i<envCount; i++) {
+			strcat(environmentArray[i], "/");
+			strcat(environmentArray[i], command->name);
+			if (execv(environmentArray[i], command->args) != -1) exit(0);
 		}
+
+		// If command is not found in any of system paths or current path, printing error message.
+		printf("-%s: %s: command not found\n", sysname, command->name);
 		exit(0);
 
 	}
