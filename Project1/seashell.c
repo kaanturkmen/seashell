@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <regex.h>
+#include <sys/stat.h>
 const char * sysname = "seashell";
 
 enum return_codes {
@@ -321,6 +323,30 @@ int main()
 	return 0;
 }
 
+int validateGoodMorningArgs(char *time, char *path) {
+	// Creating variable for regex and stat structure for future use.
+	regex_t regex_time;
+	struct stat file;
+
+	// Defining new regex as XX.XX where X represents a digit.
+	regcomp(&regex_time, "^[0-9][0-9][.][0-9][0-9]$", 0);
+
+	// Checking if use parameters are valid and returning EXIT if they are not.
+	if ((stat(path, &file) < 0) || regexec(&regex_time, time, 0, NULL, 0)) return EXIT;
+
+	// Returning SUCCESS if they are valid.
+	return SUCCESS;
+}
+
+void executeGoodMorning(char *time, char *path) {
+	if(!validateGoodMorningArgs(time, path)) {
+		// TODO: Implement a functionality.
+		printf("Valid inputs.");
+	} else {
+		printf("-%s: goodMorning: Please use valid inputs.\n", sysname);
+	}
+}
+
 int process_command(struct command_t *command)
 {
 	int r;
@@ -328,6 +354,15 @@ int process_command(struct command_t *command)
 
 	if (strcmp(command->name, "exit")==0)
 		return EXIT;
+
+	if (strcmp(command->name, "goodMorning") == 0) {
+		if (command->arg_count != 2) {
+				printf("-%s: %s: Please use exactly 2 parameters as an input.\n", sysname, command->name);
+		} else {
+			executeGoodMorning(command->args[0], command->args[1]);
+		}
+		return SUCCESS;
+	}
 
 	if (strcmp(command->name, "cd")==0)
 	{
