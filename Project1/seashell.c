@@ -24,6 +24,7 @@ struct command_t {
 	char *redirects[3]; // in/out redirection
 	struct command_t *next; // for piping
 };
+
 /**
  * Prints a command struct
  * @param struct command_t *
@@ -295,7 +296,7 @@ int prompt(struct command_t *command)
 
 	parse_command(buf, command);
 
-	// print_command(command); // DEBUG: uncomment for debugging
+	//print_command(command); // DEBUG: uncomment for debugging
 
 	// restore the old settings
 	tcsetattr(STDIN_FILENO, TCSANOW, &backup_termios);
@@ -340,10 +341,54 @@ int validateGoodMorningArgs(char *time, char *path) {
 
 void executeGoodMorning(char *time, char *path) {
 	if(!validateGoodMorningArgs(time, path)) {
-		// TODO: Implement a functionality.
-		printf("Valid inputs.");
+
+		// Char array for extracting minute and hour.
+		char min[3];
+		char hour[3];
+
+		// Extracting required hour and min.
+		strncpy(hour, time, 2);
+		min[0] = time[3];
+		min[1] = time[4];
+		min[2] = '\0';
+
+		// Creating a file pointer.
+		FILE *fp;
+
+		// Creating / Writing file for inputting crontab.
+		fp = fopen("crontab.txt", "w");
+
+		// https://askubuntu.com/a/483920 //
+		// export XAUTHORITY && export DISPLAY=:0 part of the code is taken from above link. //
+		// Writing a crontab task which calls rhythmbox-client and plays music.
+		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client %s --play\n", atoi(min), atoi(hour), path);
+		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client --exit\n", atoi(min) + 1, atoi(hour));
+		fprintf(fp, "%d %d * * * crontab -r\n", atoi(min) + 1, atoi(hour));
+
+		// Closing file pointer.
+		fclose(fp);
+
+		int stat;
+		// Creating status variable and forking a new child.
+		int childPID = fork();
+
+		// Making child to exec the cronjob.
+		if (childPID == 0) {
+			execl("/bin/crontab", "crontab", "crontab.txt", NULL);
+
+			// Removing crontab.txt since it is not required after running crontab.
+			remove("crontab.txt");
+		} else if (childPID > 0) {
+			waitpid(childPID, &stat, 0);
+		}
+
+		// Printing operation is successful message.
+		printf("SUCCESS: Your alarm has been set.\n");
+
 	} else {
+		// Printing if user fails to enter valid inputs. Showing a valid inputs.
 		printf("-%s: goodMorning: Please use valid inputs.\n", sysname);
+		printf("-%s: goodMorning: Example Usage: goodMorning 07.21 /home/kaan/Desktop/hello_COMP304.mp3\n", sysname);
 	}
 }
 
@@ -407,7 +452,7 @@ int process_command(struct command_t *command)
 		char *environments = getenv("PATH");
 
 		// Creating an 2D environment array.
-		char environmentArray[20][20];
+		char environmentArray[30][30];
 
 		// Creating new variable for tokenized strings.
 		char *tokenizedString;
@@ -438,6 +483,7 @@ int process_command(struct command_t *command)
 		for(int i = 0; i<envCount; i++) {
 			strcat(environmentArray[i], "/");
 			strcat(environmentArray[i], command->name);
+			printf("Searched in %s\n", environmentArray[i]);
 			if (execv(environmentArray[i], command->args) != -1) exit(0);
 		}
 
