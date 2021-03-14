@@ -392,6 +392,134 @@ void executeGoodMorning(char *time, char *path) {
 	}
 }
 
+int validateKDiffArgs(char **args, int argCount) {
+	// Creating file structure and char pointer for further use.
+	struct stat file;
+	char *extensionPointer;
+
+	// If argCount is equal to 2, we are using default mode which is non-binary comparison.
+	if (argCount == 2) {
+
+		// Checking if paths are valid.
+		if (stat(args[0], &file) < 0) return EXIT;
+		if (stat(args[1], &file) < 0) return EXIT;
+
+		// Checking if their extension is txt.
+		extensionPointer = strchr(args[0], '.');
+		extensionPointer++;
+		printf("%s\n", extensionPointer);
+		if (!strstr(extensionPointer, "txt")) return EXIT;
+
+		extensionPointer = strchr(args[1], '.');
+		extensionPointer++;
+		if (!strstr(extensionPointer, "txt")) return EXIT;
+
+	// If argumentCount is 3, then there is a flag.
+	} else if (argCount == 3) {
+
+		// Checking if paths are valid.
+		if (stat(args[1], &file) < 0) return EXIT;
+		if (stat(args[2], &file) < 0) return EXIT;
+
+		// If user gave another flag except -a and -b, terminating the command.
+		if (strcmp(args[0], "-a") && strcmp(args[0], "-b")) return EXIT;
+
+		// If mode a is selected, checking if file has .txt extension.
+		if (!strcmp(args[0], "-a")) {
+			extensionPointer = strchr(args[1], '.');
+			extensionPointer++;
+			if (!strstr(extensionPointer, "txt")) return EXIT;
+
+			extensionPointer = strchr(args[2], '.');
+			extensionPointer++;
+			if (!strstr(extensionPointer, "txt")) return EXIT;
+		}
+	}
+
+	return SUCCESS;
+}
+
+void executeKDiff(char **args, int argCount) {
+
+	// Executing kdiff method if arguments are valid.
+	if(!validateKDiffArgs(args, argCount)) {
+
+		// Creating file pointers for further use.
+		FILE *fp1;
+		FILE *fp2;
+
+		// Checking if mode is binary.
+		int binaryFlag = 0;
+
+		// Opening files according to given flags.
+		if (argCount == 3 && !strcmp(args[0], "-b")) {
+			fp1 = fopen(args[1], "rb");
+			fp2 = fopen(args[2], "rb");
+			binaryFlag = 1;
+		} else if (argCount == 3 && !strcmp(args[0], "-a")) {
+			fp1 = fopen(args[1], "r");
+			fp2 = fopen(args[2], "r");
+		} else {
+			fp1 = fopen(args[0], "r");
+			fp2 = fopen(args[1], "r");
+		}
+
+		// Creating a temp content to store lines.
+		char tempContent1[100];
+		char tempContent2[100];
+
+		// Creating a unsigned char arrays to store bytes.
+		unsigned char byte1[2];
+		unsigned char byte2[2];
+
+		// Creating count and lineCount variables.
+		int count = 0;
+		int lineCount = 0;
+
+		// Iterating until file ends.
+		while(!feof(fp1) && !feof(fp2)) {
+			if (!binaryFlag) {
+				// Getting lines and comparing them with each other.
+				if((fgets(tempContent1, 100, fp1) != NULL) && (fgets(tempContent2, 100, fp2) != NULL)) {
+					if(strcmp(tempContent1, tempContent2)) {
+						printf("\nDifference spotted: Line %d: File1.txt %s", (lineCount + 1), tempContent1);
+						printf("Difference spotted: Line %d: File2.txt %s\n", (lineCount + 1), tempContent2);
+						count++;
+					}
+				}
+				lineCount++;
+			} else {
+				// Comparing each byte with each other.
+				fread(byte1, sizeof(byte1), 1, fp1);
+				fread(byte2, sizeof(byte2), 1, fp2);
+				if(byte1[0] != byte2[0]) count++;
+			}
+		}
+
+		// Printing information about files.
+		if (!binaryFlag) {
+			if(count != 0) {
+				printf("Total different line count is %d\n", count);
+			} else {
+				printf("Given files are identical.\n");
+			}
+		} else {
+			if(count != 0) {
+				printf("Total byte difference between two file is %d \n", count);
+			} else {
+				printf("Given files are identical.\n");
+			}
+		}
+
+		// Closing file pointers.
+		fclose(fp1);
+		fclose(fp2);
+	} else {
+		// Error message is being prompted if user inputted invalid arguments.
+		printf("-%s: kdiff: Please use valid paths or flags. (Use .txt extension only for the non-binary mode.)\n", sysname);
+	}
+}
+
 int process_command(struct command_t *command)
 {
 	int r;
@@ -402,9 +530,18 @@ int process_command(struct command_t *command)
 
 	if (strcmp(command->name, "goodMorning") == 0) {
 		if (command->arg_count != 2) {
-				printf("-%s: %s: Please use exactly 2 parameters as an input.\n", sysname, command->name);
+			printf("-%s: %s: Please use exactly 2 parameters as an input.\n", sysname, command->name);
 		} else {
 			executeGoodMorning(command->args[0], command->args[1]);
+		}
+		return SUCCESS;
+	}
+
+	if (strcmp(command->name, "kdiff") == 0) {
+		if ((command->arg_count <= 1) || command->arg_count > 3 ) {
+			printf("-%s: %s: Please use minimum 2 and maximum 3 parameters as an input.\n", sysname, command->name);
+		} else {
+			executeKDiff(command->args, command->arg_count);
 		}
 		return SUCCESS;
 	}
@@ -472,8 +609,8 @@ int process_command(struct command_t *command)
 		tokenizedString = strtok(environments, ":");
 
 		while (tokenizedString != NULL ) {
-				strcpy(environmentArray[envCount++], tokenizedString);
-				tokenizedString = strtok(NULL, ":");
+			strcpy(environmentArray[envCount++], tokenizedString);
+			tokenizedString = strtok(NULL, ":");
 		}
 
 		// Checking if its executable or if it exists in current directory.
@@ -483,6 +620,7 @@ int process_command(struct command_t *command)
 		for(int i = 0; i<envCount; i++) {
 			strcat(environmentArray[i], "/");
 			strcat(environmentArray[i], command->name);
+			printf("Searched in %s.", environmentArray[i]);
 			if (execv(environmentArray[i], command->args) != -1) exit(0);
 		}
 
