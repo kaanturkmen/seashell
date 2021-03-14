@@ -620,7 +620,6 @@ int process_command(struct command_t *command)
 		for(int i = 0; i<envCount; i++) {
 			strcat(environmentArray[i], "/");
 			strcat(environmentArray[i], command->name);
-			printf("Searched in %s.", environmentArray[i]);
 			if (execv(environmentArray[i], command->args) != -1) exit(0);
 		}
 
