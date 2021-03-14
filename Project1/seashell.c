@@ -10,6 +10,9 @@
 #include <sys/stat.h>
 const char * sysname = "seashell";
 
+// Flag for understanding if user input is empty or not.
+int emptyUserInput = 0;
+
 enum return_codes {
 	SUCCESS = 0,
 	EXIT = 1,
@@ -97,6 +100,13 @@ int parse_command(char *buf, struct command_t *command)
 	const char *splitters=" \t"; // split at whitespace
 	int index, len;
 	len=strlen(buf);
+
+	// If user RETURN's before entering any string, setting emptyUserInput to 1.
+	if(len == 0) {
+		emptyUserInput = 1;
+		return SUCCESS;
+	}
+
 	while (len>0 && strchr(splitters, buf[0])!=NULL) // trim left whitespace
 	{
 		buf++;
@@ -288,6 +298,7 @@ int prompt(struct command_t *command)
 		if (c==4) // Ctrl+D
 			return EXIT;
 	}
+
 	if (index>0 && buf[index-1]=='\n') // trim newline from the end
 		index--;
 	buf[index++]=0; // null terminate string
@@ -414,7 +425,7 @@ int validateKDiffArgs(char **args, int argCount) {
 		extensionPointer++;
 		if (!strstr(extensionPointer, "txt")) return EXIT;
 
-	// If argumentCount is 3, then there is a flag.
+		// If argumentCount is 3, then there is a flag.
 	} else if (argCount == 3) {
 
 		// Checking if paths are valid.
@@ -523,120 +534,128 @@ void executeKDiff(char **args, int argCount) {
 int process_command(struct command_t *command)
 {
 	int r;
-	if (strcmp(command->name, "")==0) return SUCCESS;
 
-	if (strcmp(command->name, "exit")==0)
-		return EXIT;
+	if (emptyUserInput) {
 
-	if (strcmp(command->name, "goodMorning") == 0) {
-		if (command->arg_count != 2) {
-			printf("-%s: %s: Please use exactly 2 parameters as an input.\n", sysname, command->name);
-		} else {
-			executeGoodMorning(command->args[0], command->args[1]);
-		}
-		return SUCCESS;
-	}
+		if (strcmp(command->name, "")==0) return SUCCESS;
 
-	if (strcmp(command->name, "kdiff") == 0) {
-		if ((command->arg_count <= 1) || command->arg_count > 3 ) {
-			printf("-%s: %s: Please use minimum 2 and maximum 3 parameters as an input.\n", sysname, command->name);
-		} else {
-			executeKDiff(command->args, command->arg_count);
-		}
-		return SUCCESS;
-	}
+		if (strcmp(command->name, "exit")==0)
+			return EXIT;
 
-	if (strcmp(command->name, "cd")==0)
-	{
-		if (command->arg_count > 0)
-		{
-			r=chdir(command->args[0]);
-			if (r==-1)
-				printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
+		if (strcmp(command->name, "goodMorning") == 0) {
+			if (command->arg_count != 2) {
+				printf("-%s: %s: Please use exactly 2 parameters as an input.\n", sysname, command->name);
+			} else {
+				executeGoodMorning(command->args[0], command->args[1]);
+			}
 			return SUCCESS;
 		}
-	}
 
-	pid_t pid=fork();
-	if (pid==0) // child
-	{
-		/// This shows how to do exec with environ (but is not available on MacOs)
-		// extern char** environ; // environment variables
-		// execvpe(command->name, command->args, environ); // exec+args+path+environ
-
-		/// This shows how to do exec with auto-path resolve
-		// add a NULL argument to the end of args, and the name to the beginning
-		// as required by exec
-
-		// increase args size by 2
-		command->args=(char **)realloc(
-				command->args, sizeof(char *)*(command->arg_count+=2));
-
-		// shift everything forward by 1
-		for (int i=command->arg_count-2;i>0;--i)
-			command->args[i]=command->args[i-1];
-
-		// set args[0] as a copy of name
-		command->args[0]=strdup(command->name);
-		// set args[arg_count-1] (last) to NULL
-		command->args[command->arg_count-1]=NULL;
-
-		// execvp(command->name, command->args); // exec+args+path
-		// exit(0);
-		/// TODO: do your own exec with path resolving using execv()
-
-		// Getting all environments.
-		char *environments = getenv("PATH");
-
-		// Creating an 2D environment array.
-		char environmentArray[30][30];
-
-		// Creating new variable for tokenized strings.
-		char *tokenizedString;
-
-		// Getting current directory.
-		char *currentDirectory = getenv("PWD");
-
-		// Environment count for environment array indexing.
-		int envCount = 0;
-
-		// First searching if program is executable. And testing if it exists
-		// in current directory.
-		strcat(currentDirectory, "/");
-		strcat(currentDirectory, command->name);
-
-		// Filling 2D array.
-		tokenizedString = strtok(environments, ":");
-
-		while (tokenizedString != NULL ) {
-			strcpy(environmentArray[envCount++], tokenizedString);
-			tokenizedString = strtok(NULL, ":");
+		if (strcmp(command->name, "kdiff") == 0) {
+			if ((command->arg_count <= 1) || command->arg_count > 3 ) {
+				printf("-%s: %s: Please use minimum 2 and maximum 3 parameters as an input.\n", sysname, command->name);
+			} else {
+				executeKDiff(command->args, command->arg_count);
+			}
+			return SUCCESS;
 		}
 
-		// Checking if its executable or if it exists in current directory.
-		if (execv(currentDirectory, command->args) != -1) exit(0);
-
-		// Else searching inside of path directories.
-		for(int i = 0; i<envCount; i++) {
-			strcat(environmentArray[i], "/");
-			strcat(environmentArray[i], command->name);
-			if (execv(environmentArray[i], command->args) != -1) exit(0);
+		if (strcmp(command->name, "cd")==0)
+		{
+			if (command->arg_count > 0)
+			{
+				r=chdir(command->args[0]);
+				if (r==-1)
+					printf("-%s: %s: %s\n", sysname, command->name, strerror(errno));
+				return SUCCESS;
+			}
 		}
 
-		// If command is not found in any of system paths or current path, printing error message.
+		pid_t pid=fork();
+		if (pid==0) // child
+		{
+			/// This shows how to do exec with environ (but is not available on MacOs)
+			// extern char** environ; // environment variables
+			// execvpe(command->name, command->args, environ); // exec+args+path+environ
+
+			/// This shows how to do exec with auto-path resolve
+			// add a NULL argument to the end of args, and the name to the beginning
+			// as required by exec
+
+			// increase args size by 2
+			command->args=(char **)realloc(
+					command->args, sizeof(char *)*(command->arg_count+=2));
+
+			// shift everything forward by 1
+			for (int i=command->arg_count-2;i>0;--i)
+				command->args[i]=command->args[i-1];
+
+			// set args[0] as a copy of name
+			command->args[0]=strdup(command->name);
+			// set args[arg_count-1] (last) to NULL
+			command->args[command->arg_count-1]=NULL;
+
+			// execvp(command->name, command->args); // exec+args+path
+			// exit(0);
+			/// TODO: do your own exec with path resolving using execv()
+
+			// Getting all environments.
+			char *environments = getenv("PATH");
+
+			// Creating an 2D environment array.
+			char environmentArray[30][30];
+
+			// Creating new variable for tokenized strings.
+			char *tokenizedString;
+
+			// Getting current directory.
+			char *currentDirectory = getenv("PWD");
+
+			// Environment count for environment array indexing.
+			int envCount = 0;
+
+			// First searching if program is executable. And testing if it exists
+			// in current directory.
+			strcat(currentDirectory, "/");
+			strcat(currentDirectory, command->name);
+
+			// Filling 2D array.
+			tokenizedString = strtok(environments, ":");
+
+			while (tokenizedString != NULL ) {
+				strcpy(environmentArray[envCount++], tokenizedString);
+				tokenizedString = strtok(NULL, ":");
+			}
+
+			// Checking if its executable or if it exists in current directory.
+			if (execv(currentDirectory, command->args) != -1) exit(0);
+
+			// Else searching inside of path directories.
+			for(int i = 0; i<envCount; i++) {
+				strcat(environmentArray[i], "/");
+				strcat(environmentArray[i], command->name);
+				if (execv(environmentArray[i], command->args) != -1) exit(0);
+			}
+
+			// If command is not found in any of system paths or current path, printing error message.
+			printf("-%s: %s: command not found\n", sysname, command->name);
+			exit(0);
+
+		}
+		else
+		{
+			if (!command->background)
+				wait(0); // wait for child process to finish
+			return SUCCESS;
+		}
+
+		// TODO: your implementation here
+
 		printf("-%s: %s: command not found\n", sysname, command->name);
-		exit(0);
-
-	}
-	else
-	{
-		if (!command->background)
-			wait(0); // wait for child process to finish
+		return UNKNOWN;
+	} else {
+		// Setting emptyUserInput is 0 since it is not empty anymore.
+		emptyUserInput = 0;
 		return SUCCESS;
 	}
-
-	// TODO: your implementation here
-
-	printf("-%s: %s: command not found\n", sysname, command->name);
-	return UNKNOWN;
 }
