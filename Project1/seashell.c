@@ -535,7 +535,7 @@ int process_command(struct command_t *command)
 {
 	int r;
 
-	if (emptyUserInput) {
+	if (!emptyUserInput) {
 
 		if (strcmp(command->name, "")==0) return SUCCESS;
 
