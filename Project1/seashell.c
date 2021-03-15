@@ -13,6 +13,11 @@ const char * sysname = "seashell";
 // Flag for understanding if user input is empty or not.
 int emptyUserInput = 0;
 
+// GCC Compiling bug "cannot execute ‘cc1’: execvp: No such file or directory"
+// has not solved by intentionally since it ruins flags systems of the given code.
+
+// Solution: https://stackoverflow.com/a/41071835 (Tested and it is working.)
+
 enum return_codes {
 	SUCCESS = 0,
 	EXIT = 1,
