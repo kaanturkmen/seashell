@@ -519,8 +519,8 @@ void executeKDiff(char **args, int argCount) {
 				lineCount++;
 			} else {
 				// Comparing each byte with each other.
-				fread(byte1, 1, 1, fp1);
-				fread(byte2, 1, 1, fp2);
+				fread(byte1, sizeof(byte1), 1, fp1);
+				fread(byte2, sizeof(byte2), 1, fp2);
 				if(byte1[0] != byte2[0]) count++;
 			}
 		}
