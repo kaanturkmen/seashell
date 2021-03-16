@@ -429,6 +429,10 @@ int validateKDiffArgs(char **args, int argCount) {
 		if (stat(args[0], &file) < 0) return EXIT;
 		if (stat(args[1], &file) < 0) return EXIT;
 
+		// Checking for files which do not have extension.
+		if(strchr(args[0], '.') == NULL) return EXIT;
+		if(strchr(args[0], '.') == NULL) return EXIT;
+
 		// Checking if their extension is txt.
 		extensionPointer = strchr(args[0], '.');
 		extensionPointer++;
@@ -515,8 +519,8 @@ void executeKDiff(char **args, int argCount) {
 				lineCount++;
 			} else {
 				// Comparing each byte with each other.
-				fread(byte1, sizeof(byte1), 1, fp1);
-				fread(byte2, sizeof(byte2), 1, fp2);
+				fread(byte1, 1, 1, fp1);
+				fread(byte2, 1, 1, fp2);
 				if(byte1[0] != byte2[0]) count++;
 			}
 		}
