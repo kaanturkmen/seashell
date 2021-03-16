@@ -93,7 +93,9 @@ int show_prompt()
 	char cwd[1024], hostname[1024];
 	gethostname(hostname, sizeof(hostname));
 	getcwd(cwd, sizeof(cwd));
-	printf("%s@%s:%s %s$ ", getenv("USER"), hostname, cwd, sysname);
+
+	// Created bold and colored shell prompts.
+	printf("\033[1m\033[34m%s@%s\033[1m\033[37m:\033[1m\033[32m%s \033[1m\033[36m%s\033[1m\033[37m$ ", getenv("USER"), hostname, cwd, sysname);
 	return 0;
 }
 /**
