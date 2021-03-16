@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <regex.h>
 #include <sys/stat.h>
+#include <ctype.h>
+
 const char * sysname = "seashell";
 
 // Flag for understanding if user input is empty or not.
@@ -388,13 +390,18 @@ void executeGoodMorning(char *time, char *path) {
 		// Creating status variable and forking a new child.
 		int childPID = fork();
 
+		if (childPID < 0) {
+			printf("goodMorning: Failed to fork.\n");
+			return;
+		}
+
 		// Making child to exec the cronjob.
 		if (childPID == 0) {
 			execl("/bin/crontab", "crontab", "crontab.txt", NULL);
 
 			// Removing crontab.txt since it is not required after running crontab.
 			remove("crontab.txt");
-		} else if (childPID > 0) {
+		} else {
 			waitpid(childPID, &stat, 0);
 		}
 
@@ -536,6 +543,78 @@ void executeKDiff(char **args, int argCount) {
 	}
 }
 
+void executeCStock(char **args, int argCount) {
+
+	// Creating string for the URL.
+	char tempURL[100];
+
+	// Copying default URL to the string.
+	strcpy(tempURL, "rate.sx/");
+
+	// Creating childPID and stat variables for further use.
+	pid_t childPID;
+	int stat;
+
+	// Created a child process.
+	childPID = fork();
+
+	// Prompting an error if creating process operation fails.
+	if(childPID < 0) {
+		printf("cstock: Failed to fork.\n");
+		return;
+	}
+
+	// Child process is doing the executing job
+	if(childPID == 0) {
+
+		if (argCount == 1 && !strcmp(args[0], "--help")) {
+			printf("\ncstock: Graph Mode -> cstock [Crypto Currency Name] [Day (Optional) Range: [1-90]]\n");
+			printf("cstock: Example: cstock eth 4\n");
+			printf("cstock: to view last 4 day activity of ethereum.\n\n");
+
+			printf("\ncstock: Table Mode -> stock -a\n");
+			printf("cstock: to view available currencies' table.\n\n");
+		} else if (argCount == 1 && !strcmp(args[0], "-a")) {
+			execl("/usr/bin/curl", "-d", tempURL, NULL);
+		} else if (argCount == 1) {
+			strcat(tempURL, args[0]);
+			execl("/usr/bin/curl", "-d", tempURL, NULL);
+		} else if (argCount == 2) {
+
+			// Iterating parameter char by char and checking if its aa digit.
+			int argLen = strlen(args[1]);
+			int strIsDigit = 1;
+
+			for (int i = 0; i<argLen; i++) {
+				if(!isdigit(args[1][i])) {
+					strIsDigit = 0;
+					break;
+				}
+			}
+
+			if(strIsDigit) {
+				if(atoi(args[1]) > 90 || atoi(args[1]) <= 0) {
+					printf("cstock: Your day parameter should be in rage [1-90]. Please try again.\n");
+					return;
+				}
+				strcat(tempURL, args[0]);
+				strcat(tempURL, "@");
+				strcat(tempURL, args[1]);
+				strcat(tempURL, "d");
+				execl("/usr/bin/curl", "-d", tempURL, NULL);
+			} else {
+				printf("cstock: Please use positive number input to the second parameter. Range: [1-90]\n");
+			}
+		} else {
+			printf("\ncstock: Missing, too many, or invalid parameter.\n");
+			printf("cstock: Usage: cstock <param1> ...\n\n");
+			printf("cstock: Try 'cstock --help' for more options.\n\n");
+		}
+	} else {
+		waitpid(childPID, &stat, 0);
+	}
+}
+
 int process_command(struct command_t *command)
 {
 	int r;
@@ -546,6 +625,11 @@ int process_command(struct command_t *command)
 
 		if (strcmp(command->name, "exit")==0)
 			return EXIT;
+
+		if(!strcmp(command->name, "cstock")) {
+			executeCStock(command->args, command->arg_count);
+			return SUCCESS;
+		}
 
 		if (strcmp(command->name, "goodMorning") == 0) {
 			if (command->arg_count != 2) {
