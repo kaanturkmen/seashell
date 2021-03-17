@@ -497,9 +497,9 @@ void executeKDiff(char **args, int argCount) {
 		char tempContent1[100];
 		char tempContent2[100];
 
-		// Creating a unsigned char arrays to store bytes.
-		unsigned char byte1[2];
-		unsigned char byte2[2];
+		// Declaring char to store each byte.
+		char firstByte;
+		char secondByte;
 
 		// Creating count and lineCount variables.
 		int count = 0;
@@ -518,10 +518,13 @@ void executeKDiff(char **args, int argCount) {
 				}
 				lineCount++;
 			} else {
-				// Comparing each byte with each other.
-				fread(byte1, 1, 1, fp1);
-				fread(byte2, 1, 1, fp2);
-				if(byte1[0] != byte2[0]) count++;
+
+				// Getting byte from each file.
+				firstByte = fgetc(fp1);
+				secondByte = fgetc(fp2);
+
+				// Checking if they are equal.
+				if (firstByte != secondByte) count++;
 			}
 		}
 
