@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdio.h>
@@ -552,6 +553,97 @@ void executeKDiff(char **args, int argCount) {
 	}
 }
 
+int validateHighlight(char **args, int argCount) {
+	
+	if(argCount != 3) {
+		printf("highlight: Argument count should be exactly equal to the 3.\n");
+		return EXIT;
+	}
+
+	if(strcmp(args[1], "r") && strcmp(args[1], "g") && strcmp(args[1], "b")) {
+		printf("highlight: Second argument should be r, g or b.\n");
+		return EXIT;
+	}
+
+	struct stat file;
+
+	if(stat(args[2], &file) < 0) {
+		printf("highlight: Please input a legit path.\n");
+		return EXIT;
+	}
+
+	return SUCCESS;
+}
+
+void executeHighlight(char **args, int argCount) {
+	if(!validateHighlight(args, argCount)) {
+
+		// Color codes.
+		char boldRed[20] = "\033[1m\033[31m";
+		char boldGreen[20] = "\033[1m\033[32m";
+		char boldBlue[20] = "\033[1m\033[34m";
+		char white[20] = "\033[37m";
+
+		// Extracted words is created to add space to both sides of the word
+		// thus, it is only finding word occurances and not a part of the word.
+		char extractedWord[100] = " ";
+
+		strcat(extractedWord, args[0]);
+
+		strcat(extractedWord, " ");
+
+		// Creating arrays for further use.
+		char sentences[100];
+		char rightSide[100];
+		char leftSide[100];
+		char finalOutput[100];
+		char originalWord[100];
+
+		// Creating file pointer.
+		FILE *fp1;
+
+		// Creating char pointer to do string operations.
+		char *wordLocation;
+
+		// Opening the file.
+		fp1 = fopen(args[2], "r");
+
+		// Reading file until it reachs EOF, getting the line and searches for
+		// the given word, if it is found, creates required string splitting
+		// adding color codes and combining them again.
+		while(!feof(fp1)) {
+			if(fgets(sentences, 100, fp1) != NULL) {
+				wordLocation = strcasestr(sentences, extractedWord);
+				strncpy(originalWord, wordLocation, strlen(args[0]) + 1);
+
+				if (wordLocation != NULL) {
+					*wordLocation = '\0';
+					strcpy(leftSide, sentences);
+
+					strcpy(rightSide, (wordLocation + strlen(args[0]) + 1));
+
+					strcpy(finalOutput, leftSide);
+
+					if(!strcmp(args[1], "r")) strcat(finalOutput, boldRed);
+					else if(!strcmp(args[1], "g")) strcat(finalOutput, boldGreen);
+					else if(!strcmp(args[1], "b")) strcat(finalOutput, boldBlue);
+
+					strcat(finalOutput, originalWord);
+
+					strcat(finalOutput, white);
+
+					strcat(finalOutput, rightSide);
+
+					printf("%s\n", finalOutput);
+
+					wordLocation = NULL;
+				}
+			}
+		}
+	}
+}
+
+
 void executeCStock(char **args, int argCount) {
 
 	// Creating string for the URL.
@@ -634,6 +726,11 @@ int process_command(struct command_t *command)
 
 		if (strcmp(command->name, "exit")==0)
 			return EXIT;
+
+		if(!strcmp(command->name, "highlight")) {
+			executeHighlight(command->args, command->arg_count);
+			return SUCCESS;
+		}
 
 		if(!strcmp(command->name, "cstock")) {
 			executeCStock(command->args, command->arg_count);
