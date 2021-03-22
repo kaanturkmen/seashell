@@ -12,6 +12,7 @@
 #include <ctype.h>
 
 const char * sysname = "seashell";
+char * main_directory;
 
 // Flag for understanding if user input is empty or not.
 int emptyUserInput = 0;
@@ -326,6 +327,7 @@ int prompt(struct command_t *command)
 int process_command(struct command_t *command);
 int main()
 {
+	main_directory = getcwd(NULL, 100);
 	while (1)
 	{
 		struct command_t *command=malloc(sizeof(struct command_t));
@@ -716,6 +718,145 @@ void executeCStock(char **args, int argCount) {
 	}
 }
 
+void executeShortdir(char** args, int arg_count){
+	if(arg_count<1){
+		//TODO List all possible arguments
+		printf("shortdir: No option is specified!\n");
+		return;
+	}
+	
+	FILE *fp;
+	FILE *fp_temp;
+	
+	//File paths for .shortdir and .temp_shortdir files which store alias associations
+	char  file_path[100], file_temp_path[100];
+	strcpy(file_path, main_directory);
+	strcpy(file_temp_path, main_directory);
+	strcat(file_path, "/.shortdir");
+	strcat(file_temp_path, "/.temp_shortdir");
+
+	//Creates .shortdir file if it doesn't exist
+	fp=fopen(file_path, "a");
+	fclose(fp);
+
+	fp=fopen(file_path, "r");
+	fp_temp=fopen(file_temp_path, "w");
+
+	//Buffers for file read/write operations
+	char buffer[100];
+	char buffer_temp[100];
+
+	//Check for options
+	if(strcmp(args[0], "set")==0 && arg_count==2){
+		int IS_FOUND = 0;
+		
+		char current_directory[100];
+		getcwd(current_directory, sizeof(current_directory));
+		
+		//Reads from .shortir and writes it to .temp_shortdir with the appropriate changes
+		while(fgets(buffer, 99, fp)!=NULL){
+			char *directory = strtok(buffer, " ");
+
+			//If there is already alias set for the directory, overwrite with the new
+			if(strcmp(directory, current_directory)==0 && !IS_FOUND){
+				fputs(current_directory, fp_temp);
+				fputs(" ", fp_temp);
+				fputs(args[1], fp_temp);
+				fputs("\n", fp_temp);
+				IS_FOUND=1;
+			}else{
+				
+				char *shortdir = strtok(NULL, "\n");
+				//If the alias is used for another directory, delete it, use the alias for the current directory
+				if(strcmp(shortdir, args[1])==0){
+					printf("shortdir: This alias was already in use (%s) and now it is overwritten!\n", directory);
+				}
+				else{
+					fputs(directory, fp_temp);
+					fputs(" ", fp_temp);
+					fputs(shortdir, fp_temp);
+					fputs("\n", fp_temp);
+				}
+			}
+		}
+		//If there is no prior alias set for the current directory, add it to the file as a new line
+		if(!IS_FOUND){
+				fputs(current_directory, fp_temp);
+				fputs(" ", fp_temp);
+			 	fputs(args[1], fp_temp);
+				fputs("\n", fp_temp);
+				IS_FOUND=1;
+		}
+		//.temp_shortdir->.shortdir
+		remove(file_path);
+		rename(file_temp_path, file_path);
+
+		printf("shortdir: %s alias is set for  %s\n", args[1], current_directory);
+	}
+	else if(strcmp(args[0], "jump")==0 && arg_count==2){
+		int IS_FOUND = 0;
+
+		//Read through the .shortdir file until finding the alias
+		while(fgets(buffer, 99,fp)!=NULL){
+			char *directory = strtok(buffer, " ");
+			char *shortdir = strtok(NULL, "\n");
+
+			if(strcmp(shortdir, args[1])==0){
+				chdir(directory);
+				IS_FOUND = 1;
+				break;
+			}
+		}
+		if(!IS_FOUND)
+			printf("shortdir: No such shortdir: %s \n", args[1]);
+	}
+	else if(strcmp(args[0], "clear")==0){
+		//Remove both .shortdir and .temp_shortdir files
+		remove(file_path);
+		remove(file_temp_path);
+	}
+	else if(strcmp(args[0], "del")==0 && arg_count==2){
+		int IS_FOUND = 0;
+
+		//Read through '.shortdir' and directly write its content to '.temp_shortdir' excluding the
+		//selected alias information. Then rename .temp_shortdir to .shortdir to apply changes
+		while(fgets(buffer, 99,fp)!=NULL){
+			char *directory = strtok(buffer, " ");
+			char *shortdir = strtok(NULL, "\n");
+
+			if(strcmp(shortdir, args[1])!=0){
+				fputs(directory, fp_temp);
+				fputs(" ", fp_temp);
+			 	fputs(shortdir, fp_temp);
+				fputs("\n", fp_temp);
+			}else
+				IS_FOUND=1;
+		}
+		if(IS_FOUND)
+			printf("shortdir: %s alias is deleted.\n", args[1]);
+		else
+			printf("shortdir: %s alias does not exist.\n", args[1]);
+
+		remove(file_path);
+		rename(file_temp_path, file_path);
+	}
+	else if(strcmp(args[0], "list")==0){
+		//Reads through '.shortdir' and prints its content line by line
+		printf("%-20s | Directory\n", "Shortdir name");
+		while(fgets(buffer, 99,fp)!=NULL){
+			char *directory = strtok(buffer, " ");
+			char *shortdir = strtok(NULL, "\n");
+			printf("%-20s   %-40s\n", shortdir, directory);		
+		}
+	}
+	else{
+		printf("shortdir: Invalid, missing or too many options!\n");
+	}
+
+	fclose(fp);
+	fclose(fp_temp);
+}
+
 int process_command(struct command_t *command)
 {
 	int r;
@@ -727,12 +868,17 @@ int process_command(struct command_t *command)
 		if (strcmp(command->name, "exit")==0)
 			return EXIT;
 
-		if(!strcmp(command->name, "highlight")) {
+		if(strcmp(command->name, "shortdir")==0){
+			executeShortdir(command->args, command->arg_count);
+			return SUCCESS;
+		}
+
+		if(strcmp(command->name, "highlight")==0) {
 			executeHighlight(command->args, command->arg_count);
 			return SUCCESS;
 		}
 
-		if(!strcmp(command->name, "cstock")) {
+		if(strcmp(command->name, "cstock")==0) {
 			executeCStock(command->args, command->arg_count);
 			return SUCCESS;
 		}
