@@ -748,6 +748,10 @@ void executeShortdir(char** args, int arg_count){
 
 	//Check for options
 	if(strcmp(args[0], "set")==0 && arg_count==2){
+		if(strlen(args[1])>50){
+			printf("shortdir: the alias name cannot be longer than 49 characters!\n");
+			return;
+		}
 		int IS_FOUND = 0;
 		
 		char current_directory[100];
