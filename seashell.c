@@ -586,61 +586,48 @@ void executeHighlight(char **args, int argCount) {
 		char boldBlue[20] = "\033[1m\033[34m";
 		char white[20] = "\033[37m";
 
-		// Extracted words is created to add space to both sides of the word
-		// thus, it is only finding word occurances and not a part of the word.
-		char extractedWord[100] = " ";
-
-		strcat(extractedWord, args[0]);
-
-		strcat(extractedWord, " ");
-
-		// Creating arrays for further use.
-		char sentences[100];
-		char rightSide[100];
-		char leftSide[100];
-		char finalOutput[100];
-		char originalWord[100];
+		//Buffer to read the file
+		char buffer[100];
+		
+		char *word;
+		char *selected_color;
 
 		// Creating file pointer.
-		FILE *fp1;
+		FILE *fp;
+		
 
-		// Creating char pointer to do string operations.
-		char *wordLocation;
+		if(strcmp(args[1], "r")==0) selected_color = boldRed;
+		else if(strcmp(args[1], "b")==0) selected_color = boldBlue;
+		else if(strcmp(args[1], "g")==0) selected_color = boldGreen;
+
+		
 
 		// Opening the file.
-		fp1 = fopen(args[2], "r");
+		fp = fopen(args[2], "r");
 
-		// Reading file until it reachs EOF, getting the line and searches for
-		// the given word, if it is found, creates required string splitting
-		// adding color codes and combining them again.
-		while(!feof(fp1)) {
-			if(fgets(sentences, 100, fp1) != NULL) {
-				wordLocation = strcasestr(sentences, extractedWord);
-				strncpy(originalWord, wordLocation, strlen(args[0]) + 1);
+		//Read line by line
+		while(fgets(buffer, 100, fp) != NULL) {
+			buffer[strlen(buffer)-1] = '\0';
 
-				if (wordLocation != NULL) {
-					*wordLocation = '\0';
-					strcpy(leftSide, sentences);
-
-					strcpy(rightSide, (wordLocation + strlen(args[0]) + 1));
-
-					strcpy(finalOutput, leftSide);
-
-					if(!strcmp(args[1], "r")) strcat(finalOutput, boldRed);
-					else if(!strcmp(args[1], "g")) strcat(finalOutput, boldGreen);
-					else if(!strcmp(args[1], "b")) strcat(finalOutput, boldBlue);
-
-					strcat(finalOutput, originalWord);
-
-					strcat(finalOutput, white);
-
-					strcat(finalOutput, rightSide);
-
-					printf("%s\n", finalOutput);
-
-					wordLocation = NULL;
+			//Parse the line into tokens and check if they match the user given word
+			word = strtok(buffer, " ");
+			while(word != NULL){
+				
+				//If matches, append proper color values next to the word and print
+				//Else  print without style
+				if(strcasecmp(word, args[0])==0){
+					printf("%s%s%s", selected_color, word, white);		
 				}
+				else
+					printf("%s", word);
+				
+				//Get next token
+				word = strtok(NULL, " ");
+				
+				if(word!=NULL)
+					printf(" ");
 			}
+			printf("\n");
 		}
 	}
 }
