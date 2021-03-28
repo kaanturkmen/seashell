@@ -13,7 +13,7 @@
 
 const char *sysname = "seashell";
 char *main_directory;
-int maxSize = 100;
+int maxSize = 512;
 
 // Flag for understanding if user input is empty or not.
 int emptyUserInput = 0;
@@ -440,7 +440,6 @@ int validateKDiffArgs(char **args, int argCount) {
 		// Checking if their extension is txt.
 		extensionPointer = strchr(args[0], '.');
 		extensionPointer++;
-		printf("%s\n", extensionPointer);
 		if (!strstr(extensionPointer, "txt")) return EXIT;
 
 		extensionPointer = strchr(args[1], '.');
@@ -557,7 +556,7 @@ void executeKDiff(char **args, int argCount) {
 }
 
 int validateHighlight(char **args, int argCount) {
-	
+
 	if(argCount != 3) {
 		printf("highlight: Argument count should be exactly equal to the 3.\n");
 		return EXIT;
@@ -589,19 +588,19 @@ void executeHighlight(char **args, int argCount) {
 
 		//Buffer to read the file
 		char buffer[maxSize];
-		
+
 		char *word;
 		char *selected_color;
 
 		// Creating file pointer.
 		FILE *fp;
-		
+
 
 		if(strcmp(args[1], "r")==0) selected_color = boldRed;
 		else if(strcmp(args[1], "b")==0) selected_color = boldBlue;
 		else if(strcmp(args[1], "g")==0) selected_color = boldGreen;
 
-		
+
 
 		// Opening the file.
 		fp = fopen(args[2], "r");
@@ -613,18 +612,18 @@ void executeHighlight(char **args, int argCount) {
 			//Parse the line into tokens and check if they match the user given word
 			word = strtok(buffer, " ");
 			while(word != NULL){
-				
+
 				//If matches, append proper color values next to the word and print
 				//Else  print without style
 				if(strcasecmp(word, args[0])==0){
-					printf("%s%s%s", selected_color, word, white);		
+					printf("%s%s%s", selected_color, word, white);
 				}
 				else
 					printf("%s", word);
-				
+
 				//Get next token
 				word = strtok(NULL, " ");
-				
+
 				if(word!=NULL)
 					printf(" ");
 			}
@@ -712,10 +711,10 @@ void executeShortdir(char** args, int arg_count){
 		printf("shortdir: No option is specified!\n");
 		return;
 	}
-	
+
 	FILE *fp;
 	FILE *fp_temp;
-	
+
 	//File paths for .shortdir and .temp_shortdir files which store alias associations
 	char  file_path[maxSize], file_temp_path[maxSize];
 	strcpy(file_path, main_directory);
@@ -741,10 +740,10 @@ void executeShortdir(char** args, int arg_count){
 			return;
 		}
 		int IS_FOUND = 0;
-		
+
 		char current_directory[maxSize];
 		getcwd(current_directory, sizeof(current_directory));
-		
+
 		//Reads from .shortir and writes it to .temp_shortdir with the appropriate changes
 		while(fgets(buffer, maxSize, fp)!=NULL){
 			char *directory = strtok(buffer, " ");
@@ -757,7 +756,7 @@ void executeShortdir(char** args, int arg_count){
 				fputs("\n", fp_temp);
 				IS_FOUND=1;
 			}else{
-				
+
 				char *shortdir = strtok(NULL, "\n");
 				//If the alias is used for another directory, delete it, use the alias for the current directory
 				if(strcmp(shortdir, args[1])==0){
@@ -838,7 +837,7 @@ void executeShortdir(char** args, int arg_count){
 		while(fgets(buffer, maxSize,fp)!=NULL){
 			char *directory = strtok(buffer, " ");
 			char *shortdir = strtok(NULL, "\n");
-			printf("%-20s   %-40s\n", shortdir, directory);		
+			printf("%-20s   %-40s\n", shortdir, directory);
 		}
 	}
 	else{
