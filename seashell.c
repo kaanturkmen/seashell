@@ -1,3 +1,5 @@
+// Authors: Kaan Turkmen - Eren Yenigul.
+
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/wait.h>
@@ -644,11 +646,11 @@ void executeHighlight(char **args, int argCount) {
 
 				//Get next token
 				word = strtok(NULL, " .,?;:-");
-				
+
 				if(word!=NULL)
 					strncat(lineBuffer, " " , maxSize);
 			}
-		
+
 			if(willBePrinted) {
 				printf("%s\n", lineBuffer);
 			}
