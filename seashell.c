@@ -11,8 +11,9 @@
 #include <sys/stat.h>
 #include <ctype.h>
 
-const char * sysname = "seashell";
-char * main_directory;
+const char *sysname = "seashell";
+char *main_directory;
+int maxSize = 512;
 
 // Flag for understanding if user input is empty or not.
 int emptyUserInput = 0;
@@ -327,7 +328,7 @@ int prompt(struct command_t *command)
 int process_command(struct command_t *command);
 int main()
 {
-	main_directory = getcwd(NULL, 100);
+	main_directory = getcwd(NULL, maxSize);
 	while (1)
 	{
 		struct command_t *command=malloc(sizeof(struct command_t));
@@ -381,11 +382,10 @@ void executeGoodMorning(char *time, char *path) {
 		// Creating / Writing file for inputting crontab.
 		fp = fopen("crontab.txt", "w");
 
-		// https://askubuntu.com/a/483920 //
-		// export XAUTHORITY && export DISPLAY=:0 part of the code is taken from above link. //
+		// XDG_RUNTIME_DIR=/run/user/$(id -u) part of the code is taken from Stackoverflow. //
 		// Writing a crontab task which calls rhythmbox-client and plays music.
-		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client %s --play\n", atoi(min), atoi(hour), path);
-		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client --exit\n", atoi(min) + 1, atoi(hour));
+		fprintf(fp, "%d %d * * * XDG_RUNTIME_DIR=/run/user/$(id -u) rhythmbox-client %s --play\n", atoi(min), atoi(hour), path);
+		fprintf(fp, "%d %d * * * XDG_RUNTIME_DIR=/run/user/$(id -u) rhythmbox-client --exit\n", atoi(min) + 1, atoi(hour));
 		fprintf(fp, "%d %d * * * crontab -r\n", atoi(min) + 1, atoi(hour));
 
 		// Closing file pointer.
@@ -439,7 +439,6 @@ int validateKDiffArgs(char **args, int argCount) {
 		// Checking if their extension is txt.
 		extensionPointer = strchr(args[0], '.');
 		extensionPointer++;
-		printf("%s\n", extensionPointer);
 		if (!strstr(extensionPointer, "txt")) return EXIT;
 
 		extensionPointer = strchr(args[1], '.');
@@ -497,8 +496,8 @@ void executeKDiff(char **args, int argCount) {
 		}
 
 		// Creating a temp content to store lines.
-		char tempContent1[100];
-		char tempContent2[100];
+		char tempContent1[maxSize];
+		char tempContent2[maxSize];
 
 		// Declaring char to store each byte.
 		char firstByte;
@@ -512,7 +511,7 @@ void executeKDiff(char **args, int argCount) {
 		while(!feof(fp1) && !feof(fp2)) {
 			if (!binaryFlag) {
 				// Getting lines and comparing them with each other.
-				if((fgets(tempContent1, 100, fp1) != NULL) && (fgets(tempContent2, 100, fp2) != NULL)) {
+				if((fgets(tempContent1, maxSize, fp1) != NULL) && (fgets(tempContent2, maxSize, fp2) != NULL)) {
 					if(strcmp(tempContent1, tempContent2)) {
 						printf("\nDifference spotted: Line %d: File1.txt %s", (lineCount + 1), tempContent1);
 						printf("Difference spotted: Line %d: File2.txt %s\n", (lineCount + 1), tempContent2);
@@ -556,7 +555,7 @@ void executeKDiff(char **args, int argCount) {
 }
 
 int validateHighlight(char **args, int argCount) {
-	
+
 	if(argCount != 3) {
 		printf("highlight: Argument count should be exactly equal to the 3.\n");
 		return EXIT;
@@ -587,47 +586,61 @@ void executeHighlight(char **args, int argCount) {
 		char white[20] = "\033[37m";
 
 		//Buffer to read the file
-		char buffer[100];
-		
+		char buffer[maxSize];
+		char lineBuffer[maxSize];
+
 		char *word;
 		char *selected_color;
 
 		// Creating file pointer.
 		FILE *fp;
-		
+
 
 		if(strcmp(args[1], "r")==0) selected_color = boldRed;
 		else if(strcmp(args[1], "b")==0) selected_color = boldBlue;
 		else if(strcmp(args[1], "g")==0) selected_color = boldGreen;
 
-		
+
 
 		// Opening the file.
 		fp = fopen(args[2], "r");
 
+
+		int willBePrinted = 0;
 		//Read line by line
-		while(fgets(buffer, 100, fp) != NULL) {
+		while(fgets(buffer, maxSize, fp) != NULL) {
 			buffer[strlen(buffer)-1] = '\0';
 
 			//Parse the line into tokens and check if they match the user given word
 			word = strtok(buffer, " ");
 			while(word != NULL){
-				
+
 				//If matches, append proper color values next to the word and print
 				//Else  print without style
 				if(strcasecmp(word, args[0])==0){
-					printf("%s%s%s", selected_color, word, white);		
+					willBePrinted = 1;
+					strncat(lineBuffer, selected_color, maxSize);
+					strncat(lineBuffer, word, maxSize);
+					strncat(lineBuffer, white, maxSize);
 				}
 				else
-					printf("%s", word);
-				
+					strncat(lineBuffer, word , maxSize);
+
 				//Get next token
 				word = strtok(NULL, " ");
 				
 				if(word!=NULL)
-					printf(" ");
+					strncat(lineBuffer, " " , maxSize);
 			}
-			printf("\n");
+		
+			if(willBePrinted) {
+				printf("%s\n", lineBuffer);
+			}
+
+			//Resetting line buffer
+			lineBuffer[0] = '\0';
+
+			willBePrinted = 0;
 		}
 	}
 }
@@ -636,7 +649,7 @@ void executeHighlight(char **args, int argCount) {
 void executeCStock(char **args, int argCount) {
 
 	// Creating string for the URL.
-	char tempURL[100];
+	char tempURL[maxSize];
 
 	// Copying default URL to the string.
 	strcpy(tempURL, "rate.sx/");
@@ -711,12 +724,12 @@ void executeShortdir(char** args, int arg_count){
 		printf("shortdir: No option is specified!\n");
 		return;
 	}
-	
+
 	FILE *fp;
 	FILE *fp_temp;
-	
+
 	//File paths for .shortdir and .temp_shortdir files which store alias associations
-	char  file_path[100], file_temp_path[100];
+	char  file_path[maxSize], file_temp_path[maxSize];
 	strcpy(file_path, main_directory);
 	strcpy(file_temp_path, main_directory);
 	strcat(file_path, "/.shortdir");
@@ -730,8 +743,8 @@ void executeShortdir(char** args, int arg_count){
 	fp_temp=fopen(file_temp_path, "w");
 
 	//Buffers for file read/write operations
-	char buffer[100];
-	char buffer_temp[100];
+	char buffer[maxSize];
+	char buffer_temp[maxSize];
 
 	//Check for options
 	if(strcmp(args[0], "set")==0 && arg_count==2){
@@ -740,12 +753,12 @@ void executeShortdir(char** args, int arg_count){
 			return;
 		}
 		int IS_FOUND = 0;
-		
-		char current_directory[100];
+
+		char current_directory[maxSize];
 		getcwd(current_directory, sizeof(current_directory));
-		
+
 		//Reads from .shortir and writes it to .temp_shortdir with the appropriate changes
-		while(fgets(buffer, 99, fp)!=NULL){
+		while(fgets(buffer, maxSize, fp)!=NULL){
 			char *directory = strtok(buffer, " ");
 
 			//If there is already alias set for the directory, overwrite with the new
@@ -756,7 +769,7 @@ void executeShortdir(char** args, int arg_count){
 				fputs("\n", fp_temp);
 				IS_FOUND=1;
 			}else{
-				
+
 				char *shortdir = strtok(NULL, "\n");
 				//If the alias is used for another directory, delete it, use the alias for the current directory
 				if(strcmp(shortdir, args[1])==0){
@@ -788,7 +801,7 @@ void executeShortdir(char** args, int arg_count){
 		int IS_FOUND = 0;
 
 		//Read through the .shortdir file until finding the alias
-		while(fgets(buffer, 99,fp)!=NULL){
+		while(fgets(buffer, maxSize,fp)!=NULL){
 			char *directory = strtok(buffer, " ");
 			char *shortdir = strtok(NULL, "\n");
 
@@ -811,7 +824,7 @@ void executeShortdir(char** args, int arg_count){
 
 		//Read through '.shortdir' and directly write its content to '.temp_shortdir' excluding the
 		//selected alias information. Then rename .temp_shortdir to .shortdir to apply changes
-		while(fgets(buffer, 99,fp)!=NULL){
+		while(fgets(buffer, maxSize,fp)!=NULL){
 			char *directory = strtok(buffer, " ");
 			char *shortdir = strtok(NULL, "\n");
 
@@ -834,10 +847,10 @@ void executeShortdir(char** args, int arg_count){
 	else if(strcmp(args[0], "list")==0){
 		//Reads through '.shortdir' and prints its content line by line
 		printf("%-20s | Directory\n", "Shortdir name");
-		while(fgets(buffer, 99,fp)!=NULL){
+		while(fgets(buffer, maxSize,fp)!=NULL){
 			char *directory = strtok(buffer, " ");
 			char *shortdir = strtok(NULL, "\n");
-			printf("%-20s   %-40s\n", shortdir, directory);		
+			printf("%-20s   %-40s\n", shortdir, directory);
 		}
 	}
 	else{
@@ -935,7 +948,7 @@ int process_command(struct command_t *command)
 			char *environments = getenv("PATH");
 
 			// Creating an 2D environment array.
-			char environmentArray[30][30];
+			char environmentArray[maxSize][maxSize];
 
 			// Creating new variable for tokenized strings.
 			char *tokenizedString;
