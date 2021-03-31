@@ -382,11 +382,10 @@ void executeGoodMorning(char *time, char *path) {
 		// Creating / Writing file for inputting crontab.
 		fp = fopen("crontab.txt", "w");
 
-		// https://askubuntu.com/a/483920 //
-		// export XAUTHORITY && export DISPLAY=:0 part of the code is taken from above link. //
+		// XDG_RUNTIME_DIR=/run/user/$(id -u) part of the code is taken from Stackoverflow. //
 		// Writing a crontab task which calls rhythmbox-client and plays music.
-		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client %s --play\n", atoi(min), atoi(hour), path);
-		fprintf(fp, "%d %d * * * export XAUTHORITY && export DISPLAY=:0 && rhythmbox-client --exit\n", atoi(min) + 1, atoi(hour));
+		fprintf(fp, "%d %d * * * XDG_RUNTIME_DIR=/run/user/$(id -u) rhythmbox-client %s --play\n", atoi(min), atoi(hour), path);
+		fprintf(fp, "%d %d * * * XDG_RUNTIME_DIR=/run/user/$(id -u) rhythmbox-client --exit\n", atoi(min) + 1, atoi(hour));
 		fprintf(fp, "%d %d * * * crontab -r\n", atoi(min) + 1, atoi(hour));
 
 		// Closing file pointer.
