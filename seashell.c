@@ -482,17 +482,30 @@ void executeKDiff(char **args, int argCount) {
 		// Checking if mode is binary.
 		int binaryFlag = 0;
 
+		// File name strings.
+		char firstFileName[maxSize];
+		char secondFileName[maxSize];
+
 		// Opening files according to given flags.
 		if (argCount == 3 && !strcmp(args[0], "-b")) {
 			fp1 = fopen(args[1], "rb");
 			fp2 = fopen(args[2], "rb");
+
+			strcpy(firstFileName, args[1]);
+			strcpy(secondFileName, args[2]);
 			binaryFlag = 1;
 		} else if (argCount == 3 && !strcmp(args[0], "-a")) {
 			fp1 = fopen(args[1], "r");
 			fp2 = fopen(args[2], "r");
+
+			strcpy(firstFileName, args[1]);
+			strcpy(secondFileName, args[2]);
 		} else {
 			fp1 = fopen(args[0], "r");
 			fp2 = fopen(args[1], "r");
+
+			strcpy(firstFileName, args[0]);
+			strcpy(secondFileName, args[1]);
 		}
 
 		// Creating a temp content to store lines.
@@ -513,8 +526,8 @@ void executeKDiff(char **args, int argCount) {
 				// Getting lines and comparing them with each other.
 				if((fgets(tempContent1, maxSize, fp1) != NULL) && (fgets(tempContent2, maxSize, fp2) != NULL)) {
 					if(strcmp(tempContent1, tempContent2)) {
-						printf("\nDifference spotted: Line %d: File1.txt %s", (lineCount + 1), tempContent1);
-						printf("Difference spotted: Line %d: File2.txt %s\n", (lineCount + 1), tempContent2);
+						printf("\nDifference spotted: Line %d: %s %s", (lineCount + 1), firstFileName, tempContent1);
+						printf("Difference spotted: Line %d: %s %s\n", (lineCount + 1), secondFileName, tempContent2);
 						count++;
 					}
 				}
@@ -587,7 +600,6 @@ void executeHighlight(char **args, int argCount) {
 
 		//Buffer to read the file
 		char buffer[maxSize];
-		char lineBuffer[maxSize];
 
 		char *word;
 		char *selected_color;
@@ -605,8 +617,6 @@ void executeHighlight(char **args, int argCount) {
 		// Opening the file.
 		fp = fopen(args[2], "r");
 
-
-		int willBePrinted = 0;
 		//Read line by line
 		while(fgets(buffer, maxSize, fp) != NULL) {
 			buffer[strlen(buffer)-1] = '\0';
@@ -618,29 +628,18 @@ void executeHighlight(char **args, int argCount) {
 				//If matches, append proper color values next to the word and print
 				//Else  print without style
 				if(strcasecmp(word, args[0])==0){
-					willBePrinted = 1;
-					strncat(lineBuffer, selected_color, maxSize);
-					strncat(lineBuffer, word, maxSize);
-					strncat(lineBuffer, white, maxSize);
+					printf("%s%s%s", selected_color, word, white);
 				}
 				else
-					strncat(lineBuffer, word , maxSize);
+					printf("%s", word);
 
 				//Get next token
 				word = strtok(NULL, " ");
-				
+
 				if(word!=NULL)
-					strncat(lineBuffer, " " , maxSize);
+					printf(" ");
 			}
-		
-			if(willBePrinted) {
-				printf("%s\n", lineBuffer);
-			}
-
-			//Resetting line buffer
-			lineBuffer[0] = '\0';
-
-			willBePrinted = 0;
+			printf("\n");
 		}
 	}
 }
