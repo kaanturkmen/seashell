@@ -603,6 +603,7 @@ void executeHighlight(char **args, int argCount) {
 
 		//Buffer to read the file
 		char buffer[maxSize];
+		char lineBuffer[maxSize];
 
 		char *word;
 		char *selected_color;
@@ -620,33 +621,45 @@ void executeHighlight(char **args, int argCount) {
 		// Opening the file.
 		fp = fopen(args[2], "r");
 
+
+		int willBePrinted = 0;
 		//Read line by line
 		while(fgets(buffer, maxSize, fp) != NULL) {
 			buffer[strlen(buffer)-1] = '\0';
 
 			//Parse the line into tokens and check if they match the user given word
-			word = strtok(buffer, " ");
+			word = strtok(buffer, " .?;:-");
 			while(word != NULL){
 
 				//If matches, append proper color values next to the word and print
 				//Else  print without style
 				if(strcasecmp(word, args[0])==0){
-					printf("%s%s%s", selected_color, word, white);
+					willBePrinted = 1;
+					strncat(lineBuffer, selected_color, maxSize);
+					strncat(lineBuffer, word, maxSize);
+					strncat(lineBuffer, white, maxSize);
 				}
 				else
-					printf("%s", word);
+					strncat(lineBuffer, word , maxSize);
 
 				//Get next token
-				word = strtok(NULL, " ");
-
+				word = strtok(NULL, " .?;:-");
+				
 				if(word!=NULL)
-					printf(" ");
+					strncat(lineBuffer, " " , maxSize);
 			}
-			printf("\n");
+		
+			if(willBePrinted) {
+				printf("%s\n", lineBuffer);
+			}
+
+			//Resetting line buffer
+			lineBuffer[0] = '\0';
+
+			willBePrinted = 0;
 		}
 	}
 }
-
 
 void executeCStock(char **args, int argCount) {
 
