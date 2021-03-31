@@ -628,7 +628,7 @@ void executeHighlight(char **args, int argCount) {
 			buffer[strlen(buffer)-1] = '\0';
 
 			//Parse the line into tokens and check if they match the user given word
-			word = strtok(buffer, " .?;:-");
+			word = strtok(buffer, " .,?;:-");
 			while(word != NULL){
 
 				//If matches, append proper color values next to the word and print
@@ -643,12 +643,12 @@ void executeHighlight(char **args, int argCount) {
 					strncat(lineBuffer, word , maxSize);
 
 				//Get next token
-				word = strtok(NULL, " .?;:-");
-
+				word = strtok(NULL, " .,?;:-");
+				
 				if(word!=NULL)
 					strncat(lineBuffer, " " , maxSize);
 			}
-
+		
 			if(willBePrinted) {
 				printf("%s\n", lineBuffer);
 			}
@@ -800,11 +800,11 @@ void executeShortdir(char** args, int arg_count){
 		}
 		//If there is no prior alias set for the current directory, add it to the file as a new line
 		if(!IS_FOUND){
-			fputs(current_directory, fp_temp);
-			fputs(" ", fp_temp);
-			fputs(args[1], fp_temp);
-			fputs("\n", fp_temp);
-			IS_FOUND=1;
+				fputs(current_directory, fp_temp);
+				fputs(" ", fp_temp);
+			 	fputs(args[1], fp_temp);
+				fputs("\n", fp_temp);
+				IS_FOUND=1;
 		}
 		//.temp_shortdir->.shortdir
 		remove(file_path);
@@ -846,7 +846,7 @@ void executeShortdir(char** args, int arg_count){
 			if(strcmp(shortdir, args[1])!=0){
 				fputs(directory, fp_temp);
 				fputs(" ", fp_temp);
-				fputs(shortdir, fp_temp);
+			 	fputs(shortdir, fp_temp);
 				fputs("\n", fp_temp);
 			}else
 				IS_FOUND=1;
