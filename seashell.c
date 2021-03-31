@@ -628,7 +628,7 @@ void executeHighlight(char **args, int argCount) {
 			buffer[strlen(buffer)-1] = '\0';
 
 			//Parse the line into tokens and check if they match the user given word
-			word = strtok(buffer, " .?;:-");
+			word = strtok(buffer, " .,?;:-");
 			while(word != NULL){
 
 				//If matches, append proper color values next to the word and print
@@ -643,7 +643,7 @@ void executeHighlight(char **args, int argCount) {
 					strncat(lineBuffer, word , maxSize);
 
 				//Get next token
-				word = strtok(NULL, " .?;:-");
+				word = strtok(NULL, " .,?;:-");
 				
 				if(word!=NULL)
 					strncat(lineBuffer, " " , maxSize);
