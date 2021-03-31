@@ -521,19 +521,22 @@ void executeKDiff(char **args, int argCount) {
 		int lineCount = 0;
 
 		// Iterating until file ends.
-		while(!feof(fp1) && !feof(fp2)) {
+		while(!feof(fp1) || !feof(fp2)) {
 			if (!binaryFlag) {
 				// Getting lines and comparing them with each other.
-				if((fgets(tempContent1, maxSize, fp1) != NULL) && (fgets(tempContent2, maxSize, fp2) != NULL)) {
-					if(strcmp(tempContent1, tempContent2)) {
-						printf("\nDifference spotted: Line %d: %s %s", (lineCount + 1), firstFileName, tempContent1);
-						printf("Difference spotted: Line %d: %s %s\n", (lineCount + 1), secondFileName, tempContent2);
-						count++;
-					}
-				}
+				if((fgets(tempContent1, maxSize, fp1))==NULL)
+					tempContent1[0] = '\0';
+				if((fgets(tempContent2, maxSize, fp2))==NULL)
+					tempContent2[0] = '\0';
+				
 				lineCount++;
+				if(strcmp(tempContent1, tempContent2)) {
+					printf("\nDifference spotted: Line %d: %s %s", lineCount, firstFileName, tempContent1);
+					printf("Difference spotted: Line %d: %s %s\n", lineCount, secondFileName, tempContent2);
+					count++;
+				}
+				
 			} else {
-
 				// Getting byte from each file.
 				firstByte = fgetc(fp1);
 				secondByte = fgetc(fp2);
