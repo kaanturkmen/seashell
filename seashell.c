@@ -644,11 +644,11 @@ void executeHighlight(char **args, int argCount) {
 
 				//Get next token
 				word = strtok(NULL, " .?;:-");
-				
+
 				if(word!=NULL)
 					strncat(lineBuffer, " " , maxSize);
 			}
-		
+
 			if(willBePrinted) {
 				printf("%s\n", lineBuffer);
 			}
@@ -800,11 +800,11 @@ void executeShortdir(char** args, int arg_count){
 		}
 		//If there is no prior alias set for the current directory, add it to the file as a new line
 		if(!IS_FOUND){
-				fputs(current_directory, fp_temp);
-				fputs(" ", fp_temp);
-			 	fputs(args[1], fp_temp);
-				fputs("\n", fp_temp);
-				IS_FOUND=1;
+			fputs(current_directory, fp_temp);
+			fputs(" ", fp_temp);
+			fputs(args[1], fp_temp);
+			fputs("\n", fp_temp);
+			IS_FOUND=1;
 		}
 		//.temp_shortdir->.shortdir
 		remove(file_path);
@@ -846,7 +846,7 @@ void executeShortdir(char** args, int arg_count){
 			if(strcmp(shortdir, args[1])!=0){
 				fputs(directory, fp_temp);
 				fputs(" ", fp_temp);
-			 	fputs(shortdir, fp_temp);
+				fputs(shortdir, fp_temp);
 				fputs("\n", fp_temp);
 			}else
 				IS_FOUND=1;
